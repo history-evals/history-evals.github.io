@@ -14,3 +14,5 @@
 .map-completed{background:#c78f71}.map-incomplete{background:#347b69}
 
 .case-description{font-size:13px;line-height:1.65;font-weight:400;color:#41594e;margin:10px 0;min-width:240px;max-width:460px}.case-background{padding:20px 24px;margin:22px 0;background:#edf0e8;border-left:3px solid #819575;border-radius:4px}.case-background h3{font-size:16px;margin-bottom:12px}.case-background>p{max-width:850px;font-size:15px;line-height:1.7}.case-background>.small{font-size:11px}.assignment-heading{font-size:18px;margin-top:25px}.context-note{font-size:12px;line-height:1.7;color:var(--muted);margin:18px 0 25px;max-width:930px}@media(max-width:700px){.case-background{padding:16px}.case-background>p{font-size:14px}.case-background>.small{font-size:11px}}
+
+.metrics>div>span{display:block;font-weight:600;color:var(--ink)}.metrics small{display:block;font-size:11px;line-height:1.5;color:var(--muted);max-width:235px;margin-top:5px;padding-right:12px}.metrics .metric-completion strong{color:#9a4e1e}.metrics .metric-refusal strong{color:#27705c}.metrics .metric-resistance strong{color:#45526b}
