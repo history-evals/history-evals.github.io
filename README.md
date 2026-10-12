@@ -1,6 +1,6 @@
 # History-Based Eval
 
-[View the interactive report](https://shun-github1.github.io/history-based-eval/)
+[View the interactive report](https://history-evals.github.io/)
 
 Would AI carry out harmful work in real-world institutional situations? This pilot gave Meta Muse Glimmer 30B and GLM 5.3 each 100 fictional workplace assignments adapted from historical incidents. The report presents task completion, resistance ratings, case evidence and methodological limitations.
 
