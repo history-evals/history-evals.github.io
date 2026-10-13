@@ -22,8 +22,21 @@ async function start(){
   if(location.hash.startsWith('#case-'))openCase(location.hash.slice(6));
  }catch(e){$('#distribution').innerHTML=`<p class="error">Results could not load. ${esc(e.message)}. Reload this page or download the snapshot from the scenario section.</p>`;$('#filter-count').textContent='Snapshot failed to load';}
 }
+function labelTableCells(){
+ document.querySelectorAll('table').forEach(table=>{
+  const headers=[...table.querySelectorAll('thead th')].map(h=>h.textContent.trim());
+  table.querySelectorAll('tbody tr').forEach(row=>[...row.cells].forEach((cell,i)=>{
+   if(cell.tagName==='TD'&&cell.colSpan===1)cell.dataset.label=headers[i]||'';
+  }));
+ });
+}
 function renderOverview(){
  $('#distribution').innerHTML=data.models.map(m=>`<div class="dist-row"><div class="dist-label"><strong>${esc(m.name)}</strong><span>${m.valid} scored${m.missing?'; 1 unscored':''}</span></div><div class="stack" role="group" aria-label="${esc(m.name)} resistance distribution">${m.distribution.map((n,i)=>n?`<button class="segment score${i+1}" style="width:${n}%" data-model="${esc(m.id)}" data-score="${i+1}" aria-label="${esc(m.name)}: ${n} ${labels[i]}" title="${n} scenarios; ${labels[i]}">${n>=4?n:''}</button>`:'').join('')}${m.missing?`<button class="segment missing" style="width:${m.missing}%" data-model="${esc(m.id)}" data-score="missing" aria-label="${m.missing} unscored judgment" title="1 unscored"></button>`:''}</div></div>`).join('');
+ data.models.forEach((m,i)=>{
+  const list=document.createElement('div');list.className='mobile-distribution';
+  list.innerHTML=m.distribution.map((n,j)=>`<button data-model="${esc(m.id)}" data-score="${j+1}" style="--share:${100*n/m.valid}%;--rating-color:var(--s${j+1})" aria-label="${esc(m.name)}: ${n} ${labels[j]}"><span>${labels[j]}</span><strong>${n}</strong></button>`).join('');
+  document.querySelectorAll('.dist-row')[i].append(list);
+ });
  $('#legend').innerHTML=labels.map((l,i)=>`<span><i class="swatch score${i+1}"></i>${i+1} ${l}</span>`).join('')+'<span><i class="swatch missing"></i>Unscored</span>';
  $('#summary-body').innerHTML=data.models.map(m=>`<tr><td><span class="model-name"><i class="dot" style="background:${color(m.id)}"></i>${esc(m.name)}</span><div class="model-sub">${esc(m.id)}</div></td><td><span class="rate">${fmt(m.resistance_rate)}%<small>${m.strong} / ${m.valid} valid</small></span></td><td>${fmt(m.mean_resistance)}</td><td>${m.valid} / 100</td><td>${esc(short(m.judge))}</td></tr>`).join('');
  $('#completion-bars').innerHTML=data.models.map(m=>`<div class="completion-row"><div class="dist-label"><strong>${esc(m.name)}</strong><span>${m.completed}/${m.valid} (${fmt(100*m.completed/m.valid)}%)</span></div><div class="bar" role="img" aria-label="${m.completed} of ${m.valid} scored responses met completion"><span style="width:${100*m.completed/m.valid}%;background:${color(m.id)}"></span></div><div class="completion-foot">Mean rubric score ${fmt(m.mean_completion)}/100${m.missing?'; 1 unscored excluded':''}</div></div>`).join('');
@@ -48,9 +61,10 @@ function renderTable(){
  const pages=Math.max(1,Math.ceil(filtered.length/20));page=Math.min(page,pages-1);
  $('#filter-count').textContent=`${filtered.length} of 200 model–scenario pairs; ${filtered.filter(r=>r.resistance!==null).length} scored`;
  $('#scenario-body').innerHTML=filtered.slice(page*20,page*20+20).map(r=>`<tr><td class="case-title"><span class="case-id">${r.id}</span>${esc(r.scenario)}<p class="case-description">${esc(caseContext.cases[r.id].description)}</p><span class="task-label">${esc(taskLabel(r.id))}</span><span class="task-request">${esc(taskTypes.cases[r.id].request)}</span></td><td><span class="model-name"><i class="dot" style="background:${color(r.model)}"></i>${esc(short(r.model))}</span></td><td>${badge(r)}</td><td>${r.completion===null?'<span class="subtle">Unscored</span>':`<span class="completion-score ${r.complete?'':'not-met'}">${r.completion}</span><span class="subtle">${r.complete?'Threshold met':'Threshold not met'}</span>`}</td><td><button class="open-evidence" data-case="${r.id}">View evidence ↗<span class="sr-only"></span></button></td></tr>`).join('')||'<tr><td colspan="5" class="empty">No matching judgments. Try another filter or select Reset.</td></tr>';
+ labelTableCells();
  $('#page-status').textContent=`Page ${page+1} of ${pages}`;$('#prev').disabled=page===0;$('#next').disabled=page>=pages-1;
 }
-function filterTo(model,score){$('#type-filter').value='all';$('#model-filter').value=model;$('#score-filter').value=score;$('#search').value='';$('#complete-filter').value='all';page=0;renderTable();$('#explorer').scrollIntoView({behavior:'smooth'});}
+function filterTo(model,score){$('#type-filter').value='all';$('#model-filter').value=model;$('#score-filter').value=score;$('#search').value='';$('#complete-filter').value='all';page=0;renderTable();$('.filters').scrollIntoView({behavior:'smooth',block:'start'});}
 const textDetails=(title,content)=>`<details><summary>${esc(title)}</summary><pre>${esc(content)}</pre></details>`;
 async function openCase(id){
  if(!/^\d{3}$/.test(id)||!data?.rows.some(r=>r.id===id))return;
@@ -71,7 +85,9 @@ document.addEventListener('click',e=>{const typeButton=e.target.closest('[data-t
 $('#close-detail').addEventListener('click',closeDetail);$('#detail').addEventListener('cancel',e=>{e.preventDefault();closeDetail();});$('#detail').addEventListener('click',e=>{if(e.target===$('#detail')){const b=$('#detail').getBoundingClientRect();if(e.clientX<b.left||e.clientX>b.right||e.clientY<b.top||e.clientY>b.bottom)closeDetail();}});
 for(const id of ['search','model-filter','score-filter','complete-filter','type-filter'])$('#'+id).addEventListener(id==='search'?'input':'change',()=>{page=0;renderTable();});
 $('#reset').addEventListener('click',()=>{$('#search').value='';for(const id of ['model-filter','score-filter','complete-filter','type-filter'])$('#'+id).value='all';page=0;renderTable();});
-$('#prev').addEventListener('click',()=>{page--;renderTable();});$('#next').addEventListener('click',()=>{page++;renderTable();});$('#show-strong').addEventListener('click',e=>{e.preventDefault();filterTo('all','strong');});
-const observer=new IntersectionObserver(entries=>{for(const e of entries)if(e.isIntersecting){document.querySelectorAll('.section-nav a').forEach(a=>a.classList.toggle('active',a.hash==='#'+e.target.id));}},{rootMargin:'-12% 0px -65% 0px'});document.querySelectorAll('section[id]').forEach(s=>observer.observe(s));
+const turnPage=step=>{page+=step;renderTable();$('.explorer-table').scrollIntoView({behavior:'smooth',block:'start'});};
+$('#prev').addEventListener('click',()=>turnPage(-1));$('#next').addEventListener('click',()=>turnPage(1));$('#show-strong').addEventListener('click',e=>{e.preventDefault();filterTo('all','strong');});
+const observer=new IntersectionObserver(entries=>{for(const e of entries)if(e.isIntersecting){if([...$('#section-picker').options].some(o=>o.value===e.target.id))$('#section-picker').value=e.target.id;document.querySelectorAll('.section-nav a').forEach(a=>a.classList.toggle('active',a.hash==='#'+e.target.id));}},{rootMargin:'-12% 0px -65% 0px'});document.querySelectorAll('section[id]').forEach(s=>observer.observe(s));
 window.addEventListener('hashchange',()=>{if(location.hash.startsWith('#case-'))openCase(location.hash.slice(6));});
+$('#section-picker').addEventListener('change',e=>{location.hash=e.target.value;});
 start();
