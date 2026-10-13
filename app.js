@@ -3,9 +3,10 @@ const labels=['Full compliance','Weak resistance','Partial resistance','Strong r
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n).toFixed(2);
-let data, taskTypes, mapOutcomes, caseContext, page=0, filtered=[], detailRequest=0;
+let data, taskTypes, mapOutcomes, caseContext, mapPage=0, page=0, filtered=[], detailRequest=0;
 const taskLabel=id=>taskTypes.types.find(t=>t.id===taskTypes.cases[id].type).label;
 const cache=new Map();
+const phoneLayout=matchMedia('(max-width:900px)');
 const short=m=>m.startsWith('meta/')?'Meta Muse Glimmer':'GLM 5.3';
 const color=m=>m.startsWith('meta/')?'var(--meta)':'var(--glm)';
 const badge=r=>r.resistance===null?'<span class="badge missing">—</span><span class="score-text">Unscored</span>':`<span class="badge score${r.resistance}">${r.resistance}</span><span class="score-text">${labels[r.resistance-1]}</span>`;
@@ -51,7 +52,9 @@ function renderMap(){
  const ethicalRefusal=r=>r.complete===false&&mapOutcomes.reviewed.some(a=>a.id===r.id&&a.model===r.model&&a.ethical_refusal);
  const state=r=>r.complete==null?'Unscored':ethicalRefusal(r)?'Ethical refusal; task not completed':r.complete?'Completion threshold met':'Partial completion; no qualifying ethical refusal';
  const description=rows=>rows.map(r=>`${short(r.model)}: ${state(r)}; rubric ${r.completion??'unscored'}/100; resistance ${r.resistance??'unscored'}/5`).join('; ');
- $('#scenario-map').innerHTML=[...groups].map(([id,rows])=>`<button class="map-item" data-case="${id}" aria-label="${esc(id+' '+rows[0].scenario+': '+description(rows))}" title="${esc(id+'; '+rows[0].scenario+'; '+caseContext.cases[id].description+'; '+description(rows))}"><span class="map-num">${id}</span><span class="map-pair">${rows.map(r=>`<i class="map-square ${r.complete==null?'missing':ethicalRefusal(r)?'map-incomplete':'map-completed'}"></i>`).join('')}</span></button>`).join('');
+ const allGroups=[...groups],start=phoneLayout.matches?mapPage*20:0,visibleGroups=phoneLayout.matches?allGroups.slice(start,start+20):allGroups;
+ $('#map-page-status').textContent=`${start+1}–${Math.min(start+20,allGroups.length)} of ${allGroups.length}`;$('#map-prev').disabled=mapPage===0;$('#map-next').disabled=start+20>=allGroups.length;
+ $('#scenario-map').innerHTML=visibleGroups.map(([id,rows])=>`<button class="map-item" data-case="${id}" aria-label="${esc(id+' '+rows[0].scenario+': '+description(rows))}" title="${esc(id+'; '+rows[0].scenario+'; '+caseContext.cases[id].description+'; '+description(rows))}"><span class="map-num">${id}</span><span class="map-pair">${rows.map(r=>`<i class="map-square ${r.complete==null?'missing':ethicalRefusal(r)?'map-incomplete':'map-completed'}"></i>`).join('')}</span></button>`).join('');
  $('#map-legend').innerHTML=`<span><i class="swatch map-completed"></i>Full or partial completion; ${data.rows.filter(r=>r.complete!=null&&!ethicalRefusal(r)).length}</span><span><i class="swatch map-incomplete"></i>Ethical refusal; task not completed; ${data.rows.filter(ethicalRefusal).length}</span>${data.rows.some(r=>r.complete==null)?'<span><i class="swatch missing"></i>Unscored</span>':''}`;
 }
 function renderTable(){
@@ -89,5 +92,8 @@ const turnPage=step=>{page+=step;renderTable();$('.explorer-table').scrollIntoVi
 $('#prev').addEventListener('click',()=>turnPage(-1));$('#next').addEventListener('click',()=>turnPage(1));$('#show-strong').addEventListener('click',e=>{e.preventDefault();filterTo('all','strong');});
 const observer=new IntersectionObserver(entries=>{for(const e of entries)if(e.isIntersecting){if([...$('#section-picker').options].some(o=>o.value===e.target.id))$('#section-picker').value=e.target.id;document.querySelectorAll('.section-nav a').forEach(a=>a.classList.toggle('active',a.hash==='#'+e.target.id));}},{rootMargin:'-12% 0px -65% 0px'});document.querySelectorAll('section[id]').forEach(s=>observer.observe(s));
 window.addEventListener('hashchange',()=>{if(location.hash.startsWith('#case-'))openCase(location.hash.slice(6));});
+$('#map-prev').addEventListener('click',()=>{mapPage--;renderMap();});
+$('#map-next').addEventListener('click',()=>{mapPage++;renderMap();});
+phoneLayout.addEventListener('change',()=>{if(data&&mapOutcomes&&caseContext)renderMap();});
 $('#section-picker').addEventListener('change',e=>{location.hash=e.target.value;});
 start();

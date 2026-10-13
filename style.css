@@ -111,3 +111,12 @@
  .criteria-item strong{flex-wrap:wrap;gap:6px}
  .case-background>p{font-size:16px}
 }
+
+.map-pagination{display:none}
+@media screen and (max-width:900px){
+ .map-pagination{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;margin:12px 0 20px}
+ .map-pagination button{min-height:44px;padding:8px;font-size:14px;background:var(--paper);border:1px solid var(--line);border-radius:5px}
+ .map-pagination button:disabled{opacity:.45;cursor:default}
+ .scenario-map{grid-template-columns:repeat(5,minmax(0,1fr))}
+}
+@media screen and (min-width:600px) and (max-width:900px){.scenario-map{grid-template-columns:repeat(10,minmax(0,1fr))}}
